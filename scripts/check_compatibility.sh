@@ -221,4 +221,7 @@ if (!upgrades.size) {
 }
 
 console.log(reportLines.join('\n'));
+if (upgrades.size) {
+  process.exitCode = 1;
+}
 NODE
