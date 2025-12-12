@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Compatibility checker for npm-style projects.
+# - Parses package.json for name/version and declared dependency ranges.
+# - Walks the dependency graph using npm registry metadata.
+# - Uses semver to suggest the minimum bumps needed to satisfy the latest compatibility matrix.
+
 if ! command -v node >/dev/null 2>&1; then
   echo "Error: node is required to run this script." >&2
   exit 1
@@ -19,6 +24,7 @@ fi
 node - <<'NODE'
 const fs = require('fs');
 const { execSync } = require('child_process');
+
 let semver;
 try {
   semver = require('semver');
@@ -32,11 +38,20 @@ try {
   }
 }
 
-const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const readPackageJson = () => {
+  try {
+    return JSON.parse(fs.readFileSync('package.json', 'utf8'));
+  } catch (err) {
+    console.error('Error: Unable to parse package.json:', err.message);
+    process.exit(1);
+  }
+};
+
+const pkg = readPackageJson();
 const rootName = pkg.name || '(unnamed package)';
 const rootVersion = pkg.version || '0.0.0';
 
-const toObject = (value) => value && typeof value === 'object' ? value : {};
+const toObject = (value) => (value && typeof value === 'object' ? value : {});
 
 const rootDeps = {
   dependencies: toObject(pkg.dependencies),
